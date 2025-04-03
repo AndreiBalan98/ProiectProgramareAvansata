@@ -1,4 +1,6 @@
-package ui;
+//TODO: I MUST UNDERSTAND THIS CLASS, ITS FULLY AI GENERATED
+
+package userinterface;
 
 import javax.swing.*;
 import java.awt.*;
@@ -6,7 +8,7 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 
 import neuralnetwork.ForwardNeuralNetwork;
-import org.nd4j.linalg.api.ndarray.INDArray;
+
 import java.util.stream.IntStream;
 
 public class Application extends JFrame {
