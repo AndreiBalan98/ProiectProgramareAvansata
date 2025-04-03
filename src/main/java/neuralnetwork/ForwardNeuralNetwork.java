@@ -6,6 +6,8 @@ import utils.Matrix;
 import java.util.Arrays;
 import java.util.Random;
 
+//TODO: IMPLEMENT BIAS
+
 public class ForwardNeuralNetwork {
     private final int inputSize;
     private final int numberOfHiddenLayers;
@@ -33,7 +35,7 @@ public class ForwardNeuralNetwork {
         this.outputSize = outputSize;
 
         generateNeuralNetwork();
-        initializeRandom(0.0, 0.01);
+        initializeRandom(0.0, 1.0);
     }
 
     private void generateNeuralNetwork() {
@@ -72,6 +74,48 @@ public class ForwardNeuralNetwork {
         }
 
         return train;
+    }
+
+    public void backpropagation(double[] input, double[] expectedOutput, double learningRate) {
+        // 1. Forward pass - salvăm activările
+        double[][] activations = new double[numberOfHiddenLayers + 2][];
+        activations[0] = input.clone();
+
+        for (int i = 0; i < numberOfHiddenLayers + 1; i++) {
+            activations[i + 1] = Matrix.multiply(activations[i], neuralNetwork[i]);
+            activations[i + 1] = Arrays.stream(activations[i + 1]).map(Maths::sigmoid).toArray();
+        }
+
+        // 2. Calculăm eroarea pentru stratul de ieșire
+        double[][] deltas = new double[numberOfHiddenLayers + 1][];
+        deltas[numberOfHiddenLayers] = new double[outputSize];
+
+        for (int i = 0; i < outputSize; i++) {
+            double output = activations[numberOfHiddenLayers + 1][i];
+            deltas[numberOfHiddenLayers][i] = (output - expectedOutput[i]) * Maths.sigmoidDerivative(output);
+        }
+
+        // 3. Backward pass - calculăm deltele pentru straturile ascunse
+        for (int l = numberOfHiddenLayers - 1; l >= 0; l--) {
+            deltas[l] = new double[hiddenLayersSize[l]];
+
+            for (int j = 0; j < hiddenLayersSize[l]; j++) {
+                double sum = 0;
+                for (int k = 0; k < deltas[l + 1].length; k++) {
+                    sum += neuralNetwork[l + 1][j][k] * deltas[l + 1][k];
+                }
+                deltas[l][j] = sum * Maths.sigmoidDerivative(activations[l + 1][j]);
+            }
+        }
+
+        // 4. Actualizăm ponderile
+        for (int l = 0; l < numberOfHiddenLayers + 1; l++) {
+            for (int j = 0; j < neuralNetwork[l].length; j++) {
+                for (int k = 0; k < neuralNetwork[l][j].length; k++) {
+                    neuralNetwork[l][j][k] -= learningRate * deltas[l][k] * activations[l][j];
+                }
+            }
+        }
     }
 
     public double[][][] getNeuralNetwork() {
