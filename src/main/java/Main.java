@@ -10,7 +10,7 @@ import ui.Application;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException { //Wrote from GitHub
         int inputSize = 28 * 28;
         int[] hiddenLayersSize = {128, 64}; // Două straturi ascunse
         int outputSize = 10;
