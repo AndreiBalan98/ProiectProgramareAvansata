@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.stream.IntStream;
 
 public class DigitsNN extends ForwardNeuralNetwork {
+
     public DigitsNN(int inputSize, int numberOfHiddenLayers, int[] hiddenLayersSize, int outputSize) {
         super(inputSize, numberOfHiddenLayers, hiddenLayersSize, outputSize);
     }

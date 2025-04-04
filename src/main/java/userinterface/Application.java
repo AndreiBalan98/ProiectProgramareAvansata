@@ -12,6 +12,7 @@ import neuralnetwork.ForwardNeuralNetwork;
 import java.util.stream.IntStream;
 
 public class Application extends JFrame {
+
     private final ForwardNeuralNetwork network;
     private final BufferedImage canvas;
     private JLabel predictionLabel = null;

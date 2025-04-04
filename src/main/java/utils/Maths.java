@@ -1,6 +1,7 @@
 package utils;
 
 public class Maths {
+
     public static double[] matrixMultiplication(double[] vector, double[][] matrix) {
         double[] result = new double[matrix[0].length];
 

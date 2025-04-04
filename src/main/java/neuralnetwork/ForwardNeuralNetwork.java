@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.function.Function;
 
 public abstract class ForwardNeuralNetwork {
+
     private final int inputSize;
     private final int numberOfHiddenLayers;
     private final int[] hiddenLayersSize;
