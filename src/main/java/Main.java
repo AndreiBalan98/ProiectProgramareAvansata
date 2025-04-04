@@ -3,6 +3,7 @@ import java.io.IOException;
 import crazy.MNISTHeatMap;
 import neuralnetwork.DigitsNN;
 import neuralnetwork.ForwardNeuralNetwork;
+
 import neuralnetwork.RandomNN;
 import userinterface.Application;
 
