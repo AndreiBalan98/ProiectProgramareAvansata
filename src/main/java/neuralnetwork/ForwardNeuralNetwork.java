@@ -18,7 +18,7 @@ public abstract class ForwardNeuralNetwork {
     private final Function<Double, Double>[] activationFunctions;
     private final Function<Double, Double>[] activationDerivatives;
 
-    public ForwardNeuralNetwork(int inputSize, int numberOfHiddenLayers, int[] hiddenLayersSize, int outputSize) {
+    public ForwardNeuralNetwork(int inputSize, int numberOfHiddenLayers, int[] hiddenLayersSize, int outputSize, Boolean initializeWith0) {
         this.inputSize = inputSize;
         this.numberOfHiddenLayers = numberOfHiddenLayers;
         this.hiddenLayersSize = hiddenLayersSize;
@@ -36,7 +36,9 @@ public abstract class ForwardNeuralNetwork {
         this.activationDerivatives[numberOfHiddenLayers] = Maths::sigmoidDerivative;
 
         initializeNetwork();
-        initializeWeightsXavier();
+        if (!initializeWith0) {
+            initializeWeightsXavier();
+        }
     }
 
     private void initializeNetwork() {

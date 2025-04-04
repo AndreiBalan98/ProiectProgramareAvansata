@@ -4,8 +4,8 @@ import java.util.Random;
 
 public class RandomNN extends ForwardNeuralNetwork {
 
-    public RandomNN(int inputSize, int numberOfHiddenLayers, int[] hiddenLayersSize, int outputSize) {
-        super(inputSize, numberOfHiddenLayers, hiddenLayersSize, outputSize);
+    public RandomNN(int inputSize, int numberOfHiddenLayers, int[] hiddenLayersSize, int outputSize, Boolean initializeWith0) {
+        super(inputSize, numberOfHiddenLayers, hiddenLayersSize, outputSize, initializeWith0);
     }
 
     @Override
@@ -57,7 +57,7 @@ public class RandomNN extends ForwardNeuralNetwork {
         System.out.println("Test Accuracy: " + testAccuracy);
     }
 
-    private double computeAccuracy(double[][] datasetInputs, double[][] datasetOutputs, int dataSize) {
+    public double computeAccuracy(double[][] datasetInputs, double[][] datasetOutputs, int dataSize) {
         int correctPredictions = 0;
 
         for (int i = 0; i < dataSize; i++) {

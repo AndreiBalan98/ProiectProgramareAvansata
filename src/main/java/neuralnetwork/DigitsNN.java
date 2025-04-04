@@ -10,8 +10,8 @@ import java.util.stream.IntStream;
 
 public class DigitsNN extends ForwardNeuralNetwork {
 
-    public DigitsNN(int inputSize, int numberOfHiddenLayers, int[] hiddenLayersSize, int outputSize) {
-        super(inputSize, numberOfHiddenLayers, hiddenLayersSize, outputSize);
+    public DigitsNN(int inputSize, int numberOfHiddenLayers, int[] hiddenLayersSize, int outputSize, Boolean initializeWith0) {
+        super(inputSize, numberOfHiddenLayers, hiddenLayersSize, outputSize, initializeWith0);
     }
 
     //TODO: I MUST UNDERSTAND THIS METHOD IN DEPTH
@@ -37,7 +37,7 @@ public class DigitsNN extends ForwardNeuralNetwork {
                 backpropagation(input, expectedOutput, learningRate);
 
                 if ((trainCount + 1) % batchSize == 0) {
-                    double trainAccuracy = computeScore(new MnistDataSetIterator(1, true, 12345), trainSize);
+                    double trainAccuracy = computeAccuracy(new MnistDataSetIterator(1, true, 12345), trainSize);
                     System.out.println("Epoch " + (epoch + 1) + " - Batch " + (trainCount + 1) + " - Train Accuracy: " + trainAccuracy);
                 }
 
@@ -47,11 +47,11 @@ public class DigitsNN extends ForwardNeuralNetwork {
             mnistTrain.reset();
         }
 
-        double testAccuracy = computeScore(mnistTest, testSize);
+        double testAccuracy = computeAccuracy(mnistTest, testSize);
         System.out.println("Test Accuracy: " + testAccuracy);
     }
 
-    private double computeScore(DataSetIterator dataSetIterator, int dataSize) throws IOException {
+    private double computeAccuracy(DataSetIterator dataSetIterator, int dataSize) throws IOException {
         int correctPredictions = 0;
         int totalCount = 0;
 
