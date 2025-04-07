@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ForexNN extends ForwardNeuralNetwork {
@@ -104,7 +105,16 @@ public class ForexNN extends ForwardNeuralNetwork {
         for (int epoch = 0; epoch < epochs; epoch++) {
             int trainCount = 0;
             for (int i = 0; i < trainSize; i++) {
-                backpropagation(trainInputs[i], trainOutputs[i], learningRate);
+                double[] output = feedForward(trainInputs[i]);
+                output = Arrays.stream(output).map(x -> (x > 0.5) ? 1.0 : 0.0).toArray();
+                if (!(output[0] == trainOutputs[i][0] && output[1] == trainOutputs[i][1])) {
+                    backpropagation(trainInputs[i], trainOutputs[i], learningRate);
+
+                    if (trainOutputs[i][0] != trainOutputs[i][1]) {
+                        backpropagation(trainInputs[i], trainOutputs[i], learningRate);
+                    }
+                }
+
                 trainCount++;
 
                 if (trainCount % batchSize == 0) {
@@ -122,6 +132,8 @@ public class ForexNN extends ForwardNeuralNetwork {
     // Metoda de calcul a acurateții folosind softmax pe output
     private double computeAccuracy(double[][] datasetInputs, double[][] datasetOutputs, int dataSize) {
         int correctPredictions = 0;
+        int buyOrders = 0, sellOrders = 0, evenOrders = 0;
+        int cBuys = 0, cSells = 0, cEvens = 0;
 
         for (int i = 0; i < dataSize; i++) {
             double[] rawOutput = feedForward(datasetInputs[i]);
@@ -132,12 +144,25 @@ public class ForexNN extends ForwardNeuralNetwork {
             int actual0 = (datasetOutputs[i][0] > 0.5) ? 1 : 0;
             int actual1 = (datasetOutputs[i][1] > 0.5) ? 1 : 0;
 
+            if (actual0 == 0 && actual1 == 0) {
+                evenOrders++;
+                cEvens += (actual0 == predicted0 && actual1 == predicted1) ? 1 : 0;
+            } else if (actual0 == 1 && actual1 == 0) {
+                buyOrders++;
+                cBuys += (actual0 == predicted0 && actual1 == predicted1) ? 1 : 0;
+            } else if (actual0 == 0 && actual1 == 1) {
+                sellOrders++;
+                cSells += (actual0 == predicted0 && actual1 == predicted1) ? 1 : 0;
+            }
+
             // Comparam predicția cu valoarea reală
             if (predicted0 == actual0 && predicted1 == actual1) {
                 correctPredictions++;
             }
         }
 
+        System.out.println("\nBuy: " + buyOrders + "; Sell: " + sellOrders + "; Even: " + evenOrders);
+        System.out.println("CBuy: " + cBuys + "; cSells: " + cSells + "; cEvens: " + cEvens);
         return (double) correctPredictions / dataSize;
     }
 }

@@ -11,14 +11,14 @@ import neuralnetwork.ForwardNeuralNetwork;
 
 import java.util.stream.IntStream;
 
-public class Application extends JFrame {
+public class DigitsApplication1 extends JFrame {
 
     private final ForwardNeuralNetwork network;
     private final BufferedImage canvas;
     private JLabel predictionLabel = null;
     private boolean drawing = false;
 
-    public Application(ForwardNeuralNetwork network) {
+    public DigitsApplication1(ForwardNeuralNetwork network) {
         this.network = network;
         this.canvas = new BufferedImage(280, 280, BufferedImage.TYPE_BYTE_GRAY);
 
