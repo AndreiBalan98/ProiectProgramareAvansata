@@ -97,7 +97,7 @@ public class DigitsApplication1 extends JFrame {
 
         Graphics2D g2d = canvas.createGraphics();
         g2d.setColor(Color.BLACK);
-        g2d.fillOval(x - 10, y - 10, 20, 20); // Centrat pe cursor
+        g2d.fillOval(x - 10, y - 10, 20, 20); // centrat pe mouse
         g2d.dispose();
 
         drawPanel.repaint();
