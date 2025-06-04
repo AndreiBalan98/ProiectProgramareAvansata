@@ -8,6 +8,7 @@ import utils.Maths;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 public class DigitsNN extends ForwardNeuralNetwork {
@@ -16,8 +17,12 @@ public class DigitsNN extends ForwardNeuralNetwork {
         super(inputSize, numberOfHiddenLayers, hiddenLayersSize, outputSize, initializeWith0);
     }
 
+    @Override
     public void train(int epochs, double learningRate, int trainSize, int testSize, int batchSize) throws IOException {
+        trainWithConsole(epochs, learningRate, trainSize, testSize, batchSize, System.out::println);
+    }
 
+    public void trainWithConsole(int epochs, double learningRate, int trainSize, int testSize, int batchSize, Consumer<String> consoleOutput) throws IOException {
         DataSetIterator mnistTrain = new MnistDataSetIterator(1, true, 12345);
         DataSetIterator mnistTest = new MnistDataSetIterator(1, false, 12345);
 
@@ -25,6 +30,7 @@ public class DigitsNN extends ForwardNeuralNetwork {
 
         for (int epoch = 0; epoch < epochs; epoch++) {
             trainCount = 0;
+            consoleOutput.accept("Starting Epoch " + (epoch + 1) + "/" + epochs);
 
             while (trainCount < trainSize) {
                 DataSet batch = mnistTrain.next();
@@ -38,8 +44,10 @@ public class DigitsNN extends ForwardNeuralNetwork {
                 backpropagation(input, expectedOutput, learningRate);
 
                 if ((trainCount + 1) % batchSize == 0) {
-                    double trainAccuracy = computeAccuracy(new MnistDataSetIterator(1, true, 12345), trainSize);
-                    System.out.println("Epoch " + (epoch + 1) + " - Batch " + (trainCount + 1) + " - Train Accuracy: " + trainAccuracy);
+                    double trainAccuracy = computeAccuracy(new MnistDataSetIterator(1, true, 12345), Math.min(batchSize * 2, trainSize));
+                    String message = String.format("Epoch %d - Batch %d - Train Accuracy: %.4f",
+                            (epoch + 1), (trainCount + 1), trainAccuracy);
+                    consoleOutput.accept(message);
                 }
 
                 trainCount++;
@@ -49,7 +57,7 @@ public class DigitsNN extends ForwardNeuralNetwork {
         }
 
         double testAccuracy = computeAccuracy(mnistTest, testSize);
-        System.out.println("Test Accuracy: " + testAccuracy);
+        consoleOutput.accept(String.format("Training Complete! Test Accuracy: %.4f", testAccuracy));
     }
 
     private double computeAccuracy(DataSetIterator dataSetIterator, int dataSize) throws IOException {

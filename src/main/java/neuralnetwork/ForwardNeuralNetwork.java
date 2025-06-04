@@ -138,6 +138,7 @@ public abstract class ForwardNeuralNetwork {
 
     public abstract void train(int epochs, double learningRate, int trainSize, int testSize, int batchSize) throws IOException;
 
+    // Getters
     public int getInputSize() {
         return inputSize;
     }
@@ -168,5 +169,14 @@ public abstract class ForwardNeuralNetwork {
 
     public Function<Double, Double>[] getActivationDerivatives() {
         return activationDerivatives;
+    }
+
+    // Setters for loading saved models
+    public void setWeights(double[][][] weights) {
+        this.weights = weights;
+    }
+
+    public void setBiases(double[][] biases) {
+        this.biases = biases;
     }
 }

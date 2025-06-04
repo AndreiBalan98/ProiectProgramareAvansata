@@ -1,11 +1,16 @@
-import neuralnetwork.DigitsNN;
-import userinterface.DigitsApplication1;
+import javafx.application.Application;
+import javafx.stage.Stage;
+import userinterface.DigitsApplication;
 
-import java.io.IOException;
+public class Main extends Application {
 
-public class Main {
+    public static void main(String[] args) {
+        launch(args);
+    }
 
-    public static void main(String[] args) throws IOException {
-        
+    @Override
+    public void start(Stage primaryStage) {
+        DigitsApplication app = new DigitsApplication();
+        app.start(primaryStage);
     }
 }
