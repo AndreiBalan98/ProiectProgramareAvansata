@@ -14,19 +14,19 @@ public class Maths {
         return result;
     }
 
-    public static Double relu(double x) {
+    public static double relu(double x) {
         return Math.max(0, x);
     }
 
-    public static Double reluDerivative(double x) {
+    public static double reluDerivative(double x) {
         return x > 0 ? 1 : 0;
     }
 
-    public static Double sigmoid(double x) {
+    public static double sigmoid(double x) {
         return 1 / (1 + Math.exp(-x));
     }
 
-    public static Double sigmoidDerivative(double x) {
+    public static double sigmoidDerivative(double x) {
         double sigmoidValue = sigmoid(x);
         return sigmoidValue * (1 - sigmoidValue);
     }

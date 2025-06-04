@@ -18,22 +18,23 @@ public abstract class ForwardNeuralNetwork {
     private final Function<Double, Double>[] activationFunctions;
     private final Function<Double, Double>[] activationDerivatives;
 
+    @SuppressWarnings("unchecked")
     public ForwardNeuralNetwork(int inputSize, int numberOfHiddenLayers, int[] hiddenLayersSize, int outputSize, Boolean initializeWith0) {
         this.inputSize = inputSize;
         this.numberOfHiddenLayers = numberOfHiddenLayers;
         this.hiddenLayersSize = hiddenLayersSize;
         this.outputSize = outputSize;
 
-        this.activationFunctions = new Function[numberOfHiddenLayers + 1];
-        this.activationDerivatives = new Function[numberOfHiddenLayers + 1];
+        this.activationFunctions = (Function<Double, Double>[]) new Function[numberOfHiddenLayers + 1];
+        this.activationDerivatives = (Function<Double, Double>[]) new Function[numberOfHiddenLayers + 1];
 
         for (int i = 0; i < numberOfHiddenLayers; i++) {
-            this.activationFunctions[i] = Maths::relu;
-            this.activationDerivatives[i] = Maths::reluDerivative;
+            this.activationFunctions[i] = x -> (Double) Maths.relu(x);
+            this.activationDerivatives[i] = x -> (Double) Maths.reluDerivative(x);
         }
 
-        this.activationFunctions[numberOfHiddenLayers] = Maths::sigmoid;
-        this.activationDerivatives[numberOfHiddenLayers] = Maths::sigmoidDerivative;
+        this.activationFunctions[numberOfHiddenLayers] = x -> (Double) Maths.sigmoid(x);
+        this.activationDerivatives[numberOfHiddenLayers] = x -> (Double) Maths.sigmoidDerivative(x);
 
         initializeNetwork();
         if (!initializeWith0) {
@@ -80,7 +81,7 @@ public abstract class ForwardNeuralNetwork {
 
             for (int j = 0; j < activations.length; j++) {
                 activations[j] += biases[i][j];
-                activations[j] = activationFunctions[i].apply(activations[j]);
+                activations[j] = activationFunctions[i].apply(Double.valueOf(activations[j])).doubleValue();
             }
         }
 
@@ -96,7 +97,7 @@ public abstract class ForwardNeuralNetwork {
 
             for (int j = 0; j < activations[i + 1].length; j++) {
                 activations[i + 1][j] += biases[i][j];
-                activations[i + 1][j] = activationFunctions[i].apply(activations[i + 1][j]);
+                activations[i + 1][j] = activationFunctions[i].apply(Double.valueOf(activations[i + 1][j]));
             }
         }
 
@@ -105,7 +106,7 @@ public abstract class ForwardNeuralNetwork {
 
         for (int i = 0; i < outputSize; i++) {
             double output = activations[numberOfHiddenLayers + 1][i];
-            deltas[numberOfHiddenLayers][i] = (output - expectedOutput[i]) * activationDerivatives[numberOfHiddenLayers].apply(output);
+            deltas[numberOfHiddenLayers][i] = (output - expectedOutput[i]) * activationDerivatives[numberOfHiddenLayers].apply(Double.valueOf(output));
         }
 
         for (int l = numberOfHiddenLayers - 1; l >= 0; l--) {
@@ -118,7 +119,7 @@ public abstract class ForwardNeuralNetwork {
                     sum += weights[l + 1][j][k] * deltas[l + 1][k];
                 }
 
-                deltas[l][j] = sum * activationDerivatives[l].apply(activations[l][j]);
+                deltas[l][j] = sum * activationDerivatives[l].apply(Double.valueOf(activations[l + 1][j]));
             }
         }
 
