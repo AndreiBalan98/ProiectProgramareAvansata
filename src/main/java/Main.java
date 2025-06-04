@@ -7,7 +7,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         DigitsNN model = new DigitsNN(784, 2, new int[]{32, 16}, 10, Boolean.FALSE);
-        model.train(1, 0.1, 10_000, 1_000, 1_000);
+        model.train(1, 0.1, 1_000, 1_000, 1_000);
         new DigitsApplication1(model);
     }
 }

@@ -13,7 +13,7 @@ public class DigitsApplication1 extends JFrame {
 
     private final ForwardNeuralNetwork network;
     private final BufferedImage canvas;
-    private JLabel predictionLabel = null;
+    private JLabel predictionLabel;
     private boolean drawing = false;
 
     public DigitsApplication1(ForwardNeuralNetwork network) {
@@ -25,6 +25,7 @@ public class DigitsApplication1 extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
+        // Initializare desen
         JPanel drawPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -34,10 +35,13 @@ public class DigitsApplication1 extends JFrame {
         };
         drawPanel.setPreferredSize(new Dimension(280, 280));
         drawPanel.setBackground(Color.WHITE);
+
+        // Mouse press
         drawPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 drawing = true;
+                drawAtMouse(e, drawPanel);
             }
 
             @Override
@@ -46,19 +50,18 @@ public class DigitsApplication1 extends JFrame {
                 predictDigit();
             }
         });
+
+        // Mouse drag
         drawPanel.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
                 if (drawing) {
-                    Graphics2D g2d = canvas.createGraphics();
-                    g2d.setColor(Color.BLACK);
-                    g2d.fillOval(e.getX(), e.getY(), 20, 20);
-                    g2d.dispose();
-                    drawPanel.repaint();
+                    drawAtMouse(e, drawPanel);
                 }
             }
         });
 
+        // Buton de reset
         JButton clearButton = new JButton("Clear");
         clearButton.addActionListener(e -> {
             Graphics2D g2d = canvas.createGraphics();
@@ -69,9 +72,11 @@ public class DigitsApplication1 extends JFrame {
             predictionLabel.setText("Prediction: ");
         });
 
+        // Eticheta predictie
         predictionLabel = new JLabel("Prediction: ", SwingConstants.CENTER);
         predictionLabel.setFont(new Font("Arial", Font.BOLD, 20));
 
+        // Adaugare componente
         add(drawPanel, BorderLayout.CENTER);
         add(clearButton, BorderLayout.SOUTH);
         add(predictionLabel, BorderLayout.NORTH);
@@ -79,8 +84,29 @@ public class DigitsApplication1 extends JFrame {
         setVisible(true);
     }
 
+    // Functie care deseneaza tinnd cont de scalare
+    private void drawAtMouse(MouseEvent e, JPanel drawPanel) {
+        int panelWidth = drawPanel.getWidth();
+        int panelHeight = drawPanel.getHeight();
+
+        double scaleX = canvas.getWidth() / (double) panelWidth;
+        double scaleY = canvas.getHeight() / (double) panelHeight;
+
+        int x = (int) (e.getX() * scaleX);
+        int y = (int) (e.getY() * scaleY);
+
+        Graphics2D g2d = canvas.createGraphics();
+        g2d.setColor(Color.BLACK);
+        g2d.fillOval(x - 10, y - 10, 20, 20); // Centrat pe cursor
+        g2d.dispose();
+
+        drawPanel.repaint();
+    }
+
+    // functie de predictie
     private void predictDigit() {
         double[] image = new double[28 * 28];
+
         for (int y = 0; y < 280; y += 10) {
             for (int x = 0; x < 280; x += 10) {
                 int color = new Color(canvas.getRGB(x, y)).getRed();
