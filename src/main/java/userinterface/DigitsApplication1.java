@@ -1,5 +1,3 @@
-//TODO: I MUST UNDERSTAND THIS CLASS, ITS FULLY AI GENERATED
-
 package userinterface;
 
 import javax.swing.*;
