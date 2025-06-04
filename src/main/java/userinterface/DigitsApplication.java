@@ -147,7 +147,7 @@ public class DigitsApplication {
                 int batchSize = Integer.parseInt(batchSizeField.getText());
 
                 // Disable button during training
-                startTrainingBtn.setDisabled(true);
+                startTrainingBtn.setDisable(true);
                 consoleArea.clear();
                 consoleArea.appendText("Creating neural network...\n");
 
@@ -173,7 +173,7 @@ public class DigitsApplication {
 
                         Platform.runLater(() -> {
                             consoleArea.appendText("Model saved as: " + modelName + "\n");
-                            startTrainingBtn.setDisabled(false);
+                            startTrainingBtn.setDisable(false);
                         });
 
                         return null;
@@ -183,7 +183,7 @@ public class DigitsApplication {
                 trainingTask.setOnFailed(ex -> {
                     Platform.runLater(() -> {
                         consoleArea.appendText("Error: " + trainingTask.getException().getMessage() + "\n");
-                        startTrainingBtn.setDisabled(false);
+                        startTrainingBtn.setDisable(false);
                     });
                 });
 
