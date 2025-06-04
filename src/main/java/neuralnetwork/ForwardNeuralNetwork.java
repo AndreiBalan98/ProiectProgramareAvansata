@@ -118,7 +118,7 @@ public abstract class ForwardNeuralNetwork {
                     sum += weights[l + 1][j][k] * deltas[l + 1][k];
                 }
 
-                deltas[l][j] = sum * activationDerivatives[l].apply(activations[l + 1][j]);
+                deltas[l][j] = sum * activationDerivatives[l].apply(activations[l][j]);
             }
         }
 
