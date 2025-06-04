@@ -16,7 +16,6 @@ public class DigitsNN extends ForwardNeuralNetwork {
         super(inputSize, numberOfHiddenLayers, hiddenLayersSize, outputSize, initializeWith0);
     }
 
-    //TODO: I MUST UNDERSTAND THIS METHOD IN DEPTH
     public void train(int epochs, double learningRate, int trainSize, int testSize, int batchSize) throws IOException {
 
         DataSetIterator mnistTrain = new MnistDataSetIterator(1, true, 12345);

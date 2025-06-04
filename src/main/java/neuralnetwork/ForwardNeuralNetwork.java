@@ -87,7 +87,6 @@ public abstract class ForwardNeuralNetwork {
         return activations;
     }
 
-    //TODO: I MUST UNDERSTAND THIS METHOD IN DEPTH
     public void backpropagation(double[] input, double[] expectedOutput, double learningRate) {
         double[][] activations = new double[numberOfHiddenLayers + 2][];
         activations[0] = input.clone();
