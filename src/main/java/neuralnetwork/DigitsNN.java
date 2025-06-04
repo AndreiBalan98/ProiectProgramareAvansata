@@ -23,68 +23,179 @@ public class DigitsNN extends ForwardNeuralNetwork {
     }
 
     public void trainWithConsole(int epochs, double learningRate, int trainSize, int testSize, int batchSize, Consumer<String> consoleOutput) throws IOException {
-        DataSetIterator mnistTrain = new MnistDataSetIterator(1, true, 12345);
-        DataSetIterator mnistTest = new MnistDataSetIterator(1, false, 12345);
+        DataSetIterator mnistTrain = null;
+        DataSetIterator mnistTest = null;
 
-        int trainCount;
+        try {
+            consoleOutput.accept("Initializing MNIST dataset...");
 
-        for (int epoch = 0; epoch < epochs; epoch++) {
-            trainCount = 0;
-            consoleOutput.accept("Starting Epoch " + (epoch + 1) + "/" + epochs);
+            // Create MNIST iterators with better error handling
+            mnistTrain = new MnistDataSetIterator(batchSize, true, 12345);
+            mnistTest = new MnistDataSetIterator(batchSize, false, 12345);
 
-            while (trainCount < trainSize) {
-                DataSet batch = mnistTrain.next();
-                INDArray features = batch.getFeatures();
-                INDArray labels = batch.getLabels();
+            consoleOutput.accept("MNIST dataset loaded successfully!");
 
-                double[] input = features.reshape(28 * 28).toDoubleVector();
-                double[] expectedOutput = new double[getOutputSize()];
-                expectedOutput[labels.argMax(1).getInt(0)] = 1.0;
-
-                backpropagation(input, expectedOutput, learningRate);
-
-                if ((trainCount + 1) % batchSize == 0) {
-                    double trainAccuracy = computeAccuracy(new MnistDataSetIterator(1, true, 12345), Math.min(batchSize * 2, trainSize));
-                    String message = String.format("Epoch %d - Batch %d - Train Accuracy: %.4f",
-                            (epoch + 1), (trainCount + 1), trainAccuracy);
-                    consoleOutput.accept(message);
-                }
-
-                trainCount++;
+        } catch (Exception e) {
+            String errorMsg = "Failed to load MNIST dataset: " +
+                    (e.getMessage() != null ? e.getMessage() : "Unknown error");
+            consoleOutput.accept(errorMsg);
+            consoleOutput.accept("This might be due to network issues or missing dependencies.");
+            consoleOutput.accept("Stack trace: " + e.getClass().getSimpleName());
+            if (e.getCause() != null) {
+                consoleOutput.accept("Caused by: " + e.getCause().getMessage());
             }
-
-            mnistTrain.reset();
+            throw new IOException(errorMsg, e);
         }
 
-        double testAccuracy = computeAccuracy(mnistTest, testSize);
-        consoleOutput.accept(String.format("Training Complete! Test Accuracy: %.4f", testAccuracy));
+        int trainCount = 0;
+        int totalBatches = (trainSize + batchSize - 1) / batchSize; // Ceiling division
+
+        try {
+            for (int epoch = 0; epoch < epochs; epoch++) {
+                trainCount = 0;
+                int currentBatch = 0;
+                consoleOutput.accept("Starting Epoch " + (epoch + 1) + "/" + epochs);
+
+                // Reset iterator at the beginning of each epoch
+                mnistTrain.reset();
+
+                while (trainCount < trainSize && mnistTrain.hasNext()) {
+                    try {
+                        DataSet batch = mnistTrain.next();
+
+                        if (batch == null) {
+                            consoleOutput.accept("Warning: Received null batch, skipping...");
+                            continue;
+                        }
+
+                        INDArray features = batch.getFeatures();
+                        INDArray labels = batch.getLabels();
+
+                        if (features == null || labels == null) {
+                            consoleOutput.accept("Warning: Received batch with null features or labels, skipping...");
+                            continue;
+                        }
+
+                        // Process each example in the batch
+                        int batchActualSize = Math.min(batchSize, (int)features.size(0));
+
+                        for (int i = 0; i < batchActualSize && trainCount < trainSize; i++) {
+                            INDArray singleFeature = features.getRow(i);
+                            INDArray singleLabel = labels.getRow(i);
+
+                            double[] input = singleFeature.reshape(28 * 28).toDoubleVector();
+                            double[] expectedOutput = new double[getOutputSize()];
+
+                            int labelIndex = singleLabel.argMax(1).getInt(0);
+                            if (labelIndex >= 0 && labelIndex < getOutputSize()) {
+                                expectedOutput[labelIndex] = 1.0;
+                            }
+
+                            backpropagation(input, expectedOutput, learningRate);
+                            trainCount++;
+                        }
+
+                        currentBatch++;
+
+                        // Report progress every few batches
+                        if (currentBatch % Math.max(1, totalBatches / 10) == 0) {
+                            double progress = (double) trainCount / trainSize * 100;
+                            consoleOutput.accept(String.format("Epoch %d - Progress: %.1f%% (%d/%d samples)",
+                                    (epoch + 1), progress, trainCount, trainSize));
+                        }
+
+                    } catch (Exception e) {
+                        String batchError = "Error processing batch " + currentBatch + ": " +
+                                (e.getMessage() != null ? e.getMessage() : "Unknown batch error");
+                        consoleOutput.accept(batchError);
+                        consoleOutput.accept("Continuing with next batch...");
+                        // Continue with the next batch instead of failing completely
+                    }
+                }
+
+                // Compute and report epoch accuracy
+                try {
+                    mnistTest.reset();
+                    double testAccuracy = computeAccuracy(mnistTest, Math.min(testSize, 1000));
+                    consoleOutput.accept(String.format("Epoch %d completed - Test Accuracy: %.4f",
+                            (epoch + 1), testAccuracy));
+                } catch (Exception e) {
+                    consoleOutput.accept("Warning: Could not compute test accuracy: " +
+                            (e.getMessage() != null ? e.getMessage() : "Unknown error"));
+                }
+            }
+
+            // Final test accuracy
+            try {
+                mnistTest.reset();
+                double finalTestAccuracy = computeAccuracy(mnistTest, testSize);
+                consoleOutput.accept(String.format("Training Complete! Final Test Accuracy: %.4f", finalTestAccuracy));
+            } catch (Exception e) {
+                consoleOutput.accept("Training completed, but could not compute final test accuracy: " +
+                        (e.getMessage() != null ? e.getMessage() : "Unknown error"));
+            }
+
+        } catch (Exception e) {
+            String trainError = "Training failed: " + (e.getMessage() != null ? e.getMessage() : "Unknown training error");
+            consoleOutput.accept(trainError);
+            throw new IOException(trainError, e);
+        }
     }
 
     private double computeAccuracy(DataSetIterator dataSetIterator, int dataSize) throws IOException {
         int correctPredictions = 0;
         int totalCount = 0;
+        int batchCount = 0;
 
-        while (totalCount < dataSize) {
-            DataSet batch = dataSetIterator.next();
+        try {
+            while (totalCount < dataSize && dataSetIterator.hasNext()) {
+                DataSet batch = dataSetIterator.next();
 
-            INDArray features = batch.getFeatures();
-            INDArray labels = batch.getLabels();
+                if (batch == null) continue;
 
-            double[] input = features.reshape(28 * 28).toDoubleVector();
-            int label = labels.argMax(1).getInt(0);
+                INDArray features = batch.getFeatures();
+                INDArray labels = batch.getLabels();
 
-            double[] output = feedForward(input);
-            int predictedLabel = IntStream.range(0, output.length)
-                    .reduce((i, j) -> output[i] > output[j] ? i : j)
-                    .orElse(label);
+                if (features == null || labels == null) continue;
 
-            if (predictedLabel == label) {
-                correctPredictions++;
+                int batchSize = Math.min((int)features.size(0), dataSize - totalCount);
+
+                for (int i = 0; i < batchSize; i++) {
+                    try {
+                        INDArray singleFeature = features.getRow(i);
+                        INDArray singleLabel = labels.getRow(i);
+
+                        double[] input = singleFeature.reshape(28 * 28).toDoubleVector();
+                        int label = singleLabel.argMax(1).getInt(0);
+
+                        double[] output = feedForward(input);
+                        int predictedLabel = IntStream.range(0, output.length)
+                                .reduce((j, k) -> output[j] > output[k] ? j : k)
+                                .orElse(0);
+
+                        if (predictedLabel == label) {
+                            correctPredictions++;
+                        }
+
+                        totalCount++;
+
+                    } catch (Exception e) {
+                        // Skip this sample and continue
+                        totalCount++;
+                    }
+                }
+
+                batchCount++;
             }
-
-            totalCount++;
+        } catch (Exception e) {
+            throw new IOException("Error computing accuracy: " +
+                    (e.getMessage() != null ? e.getMessage() : "Unknown accuracy error"), e);
         }
 
-        return (double) correctPredictions / dataSize;
+        if (totalCount == 0) {
+            throw new IOException("No valid samples found for accuracy computation");
+        }
+
+        return (double) correctPredictions / totalCount;
     }
 }

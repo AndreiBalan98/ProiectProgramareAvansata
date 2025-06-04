@@ -14,6 +14,8 @@ import utils.ModelSaver;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -99,11 +101,11 @@ public class DigitsApplication {
         trainGrid.setVgap(10);
         trainGrid.setAlignment(Pos.CENTER);
 
-        TextField epochsField = new TextField("5");
+        TextField epochsField = new TextField("3");
         TextField learningRateField = new TextField("0.01");
-        TextField trainSizeField = new TextField("1000");
+        TextField trainSizeField = new TextField("500");
         TextField testSizeField = new TextField("100");
-        TextField batchSizeField = new TextField("100");
+        TextField batchSizeField = new TextField("32");
 
         trainGrid.add(new Label("Epochs:"), 0, 0);
         trainGrid.add(epochsField, 1, 0);
@@ -119,78 +121,175 @@ public class DigitsApplication {
         // Console area
         TextArea consoleArea = new TextArea();
         consoleArea.setEditable(false);
-        consoleArea.setPrefRowCount(10);
+        consoleArea.setPrefRowCount(12);
         consoleArea.setStyle("-fx-font-family: monospace; -fx-background-color: #000; -fx-text-fill: #0f0;");
 
         Button startTrainingBtn = new Button("Start Training");
         startTrainingBtn.setStyle("-fx-background-color: #FF9800; -fx-text-fill: white; -fx-font-size: 14px;");
         startTrainingBtn.setPrefSize(150, 40);
 
+        // Add a progress bar
+        ProgressBar progressBar = new ProgressBar(0);
+        progressBar.setPrefWidth(300);
+        progressBar.setVisible(false);
+
         startTrainingBtn.setOnAction(e -> {
             try {
-                // Parse parameters
-                String modelName = modelNameField.getText();
-                int inputSize = Integer.parseInt(inputSizeField.getText());
-                int hiddenLayers = Integer.parseInt(hiddenLayersField.getText());
+                // Validate and parse parameters
+                String modelName = modelNameField.getText().trim();
+                if (modelName.isEmpty()) {
+                    showError("Model name cannot be empty");
+                    return;
+                }
+
+                int inputSize = parseIntField(inputSizeField, "Input Size");
+                int hiddenLayers = parseIntField(hiddenLayersField, "Hidden Layers");
                 String[] hiddenSizesStr = hiddenSizesField.getText().split(",");
                 int[] hiddenSizes = new int[hiddenSizesStr.length];
+
                 for (int i = 0; i < hiddenSizesStr.length; i++) {
-                    hiddenSizes[i] = Integer.parseInt(hiddenSizesStr[i].trim());
+                    try {
+                        hiddenSizes[i] = Integer.parseInt(hiddenSizesStr[i].trim());
+                        if (hiddenSizes[i] <= 0) {
+                            showError("Hidden layer sizes must be positive numbers");
+                            return;
+                        }
+                    } catch (NumberFormatException ex) {
+                        showError("Invalid hidden layer size: " + hiddenSizesStr[i]);
+                        return;
+                    }
                 }
-                int outputSize = Integer.parseInt(outputSizeField.getText());
+
+                if (hiddenSizes.length != hiddenLayers) {
+                    showError("Number of hidden layer sizes must match number of hidden layers");
+                    return;
+                }
+
+                int outputSize = parseIntField(outputSizeField, "Output Size");
                 boolean xavier = xavierCheckBox.isSelected();
 
-                int epochs = Integer.parseInt(epochsField.getText());
-                double learningRate = Double.parseDouble(learningRateField.getText());
-                int trainSize = Integer.parseInt(trainSizeField.getText());
-                int testSize = Integer.parseInt(testSizeField.getText());
-                int batchSize = Integer.parseInt(batchSizeField.getText());
+                int epochs = parseIntField(epochsField, "Epochs");
+                double learningRate = parseDoubleField(learningRateField, "Learning Rate");
+                int trainSize = parseIntField(trainSizeField, "Train Size");
+                int testSize = parseIntField(testSizeField, "Test Size");
+                int batchSize = parseIntField(batchSizeField, "Batch Size");
 
-                // Disable button during training
+                // Validate ranges
+                if (epochs <= 0 || epochs > 100) {
+                    showError("Epochs must be between 1 and 100");
+                    return;
+                }
+                if (learningRate <= 0 || learningRate > 1) {
+                    showError("Learning rate must be between 0 and 1");
+                    return;
+                }
+                if (trainSize <= 0 || trainSize > 60000) {
+                    showError("Train size must be between 1 and 60000");
+                    return;
+                }
+                if (testSize <= 0 || testSize > 10000) {
+                    showError("Test size must be between 1 and 10000");
+                    return;
+                }
+                if (batchSize <= 0 || batchSize > trainSize) {
+                    showError("Batch size must be between 1 and train size");
+                    return;
+                }
+
+                // Disable controls during training
                 startTrainingBtn.setDisable(true);
+                progressBar.setVisible(true);
                 consoleArea.clear();
-                consoleArea.appendText("Creating neural network...\n");
+                consoleArea.appendText("=== MNIST Neural Network Training ===\n");
+                consoleArea.appendText("Model: " + modelName + "\n");
+                consoleArea.appendText("Architecture: " + inputSize + " -> ");
+                for (int size : hiddenSizes) {
+                    consoleArea.appendText(size + " -> ");
+                }
+                consoleArea.appendText(outputSize + "\n");
+                consoleArea.appendText("Training parameters: " + epochs + " epochs, LR=" + learningRate + "\n");
+                consoleArea.appendText("Dataset: " + trainSize + " train, " + testSize + " test\n");
+                consoleArea.appendText("=====================================\n\n");
 
                 // Create and train model in background thread
                 Task<Void> trainingTask = new Task<Void>() {
                     @Override
                     protected Void call() throws Exception {
-                        currentModel = new DigitsNN(inputSize, hiddenLayers, hiddenSizes, outputSize, !xavier);
+                        try {
+                            Platform.runLater(() -> consoleArea.appendText("Creating neural network...\n"));
 
-                        Platform.runLater(() -> consoleArea.appendText("Starting training...\n"));
+                            currentModel = new DigitsNN(inputSize, hiddenLayers, hiddenSizes, outputSize, !xavier);
 
-                        // Override the train method to capture output
-                        currentModel.trainWithConsole(epochs, learningRate, trainSize, testSize, batchSize,
-                                (message) -> Platform.runLater(() -> consoleArea.appendText(message + "\n")));
+                            Platform.runLater(() -> consoleArea.appendText("Neural network created successfully!\n"));
 
-                        Platform.runLater(() -> {
-                            consoleArea.appendText("Training completed!\n");
-                            consoleArea.appendText("Saving model...\n");
-                        });
+                            // Train the model with console output
+                            currentModel.trainWithConsole(epochs, learningRate, trainSize, testSize, batchSize,
+                                    (message) -> Platform.runLater(() -> {
+                                        consoleArea.appendText(message + "\n");
+                                        consoleArea.setScrollTop(Double.MAX_VALUE); // Auto-scroll
+                                    }));
 
-                        // Save model
-                        ModelSaver.saveModel(currentModel, modelName);
+                            Platform.runLater(() -> {
+                                consoleArea.appendText("\n=== TRAINING COMPLETED ===\n");
+                                consoleArea.appendText("Saving model...\n");
+                            });
 
-                        Platform.runLater(() -> {
-                            consoleArea.appendText("Model saved as: " + modelName + "\n");
-                            startTrainingBtn.setDisable(false);
-                        });
+                            // Save model
+                            ModelSaver.saveModel(currentModel, modelName);
+
+                            Platform.runLater(() -> {
+                                consoleArea.appendText("Model saved successfully as: " + modelName + ".model\n");
+                                consoleArea.appendText("You can now test the model using 'Test Model' button.\n");
+                            });
+
+                        } catch (Exception ex) {
+                            // Log the full stack trace to console
+                            Platform.runLater(() -> {
+                                consoleArea.appendText("\n=== ERROR OCCURRED ===\n");
+                                consoleArea.appendText("Error: " + ex.getClass().getSimpleName() + "\n");
+                                consoleArea.appendText("Message: " + (ex.getMessage() != null ? ex.getMessage() : "No message available") + "\n");
+
+                                if (ex.getCause() != null) {
+                                    consoleArea.appendText("Caused by: " + ex.getCause().getClass().getSimpleName() + "\n");
+                                    consoleArea.appendText("Cause message: " + (ex.getCause().getMessage() != null ? ex.getCause().getMessage() : "No cause message") + "\n");
+                                }
+
+                                consoleArea.appendText("\nFull stack trace:\n");
+                                StringWriter sw = new StringWriter();
+                                PrintWriter pw = new PrintWriter(sw);
+                                ex.printStackTrace(pw);
+                                consoleArea.appendText(sw.toString());
+                                consoleArea.appendText("\n======================\n");
+                            });
+                            throw ex; // Re-throw for task failure handling
+                        }
 
                         return null;
                     }
                 };
 
-                trainingTask.setOnFailed(ex -> {
+                trainingTask.setOnSucceeded(event -> {
+                    startTrainingBtn.setDisable(false);
+                    progressBar.setVisible(false);
+                });
+
+                trainingTask.setOnFailed(event -> {
+                    Throwable exception = trainingTask.getException();
                     Platform.runLater(() -> {
-                        consoleArea.appendText("Error: " + trainingTask.getException().getMessage() + "\n");
+                        consoleArea.appendText("\n=== TRAINING FAILED ===\n");
+                        if (exception != null) {
+                            consoleArea.appendText("Final error: " + exception.getMessage() + "\n");
+                        }
+                        consoleArea.appendText("Please check the error details above and try again.\n");
                         startTrainingBtn.setDisable(false);
+                        progressBar.setVisible(false);
                     });
                 });
 
                 new Thread(trainingTask).start();
 
-            } catch (NumberFormatException ex) {
-                consoleArea.appendText("Error: Invalid number format\n");
+            } catch (Exception ex) {
+                showError("Configuration error: " + ex.getMessage());
             }
         });
 
@@ -202,14 +301,47 @@ public class DigitsApplication {
                 trainGrid,
                 new Label("Training Console:"),
                 consoleArea,
+                progressBar,
                 startTrainingBtn
         );
 
         ScrollPane scrollPane = new ScrollPane(layout);
         scrollPane.setFitToWidth(true);
-        Scene scene = new Scene(scrollPane, 500, 700);
+        Scene scene = new Scene(scrollPane, 550, 750);
         createStage.setScene(scene);
         createStage.show();
+    }
+
+    private int parseIntField(TextField field, String fieldName) throws NumberFormatException {
+        try {
+            int value = Integer.parseInt(field.getText().trim());
+            if (value <= 0) {
+                throw new NumberFormatException(fieldName + " must be a positive number");
+            }
+            return value;
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException("Invalid " + fieldName + ": " + field.getText());
+        }
+    }
+
+    private double parseDoubleField(TextField field, String fieldName) throws NumberFormatException {
+        try {
+            double value = Double.parseDouble(field.getText().trim());
+            if (value <= 0) {
+                throw new NumberFormatException(fieldName + " must be a positive number");
+            }
+            return value;
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException("Invalid " + fieldName + ": " + field.getText());
+        }
+    }
+
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText("Configuration Error");
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     private void showTestModelWindow() {
@@ -234,7 +366,9 @@ public class DigitsApplication {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
             alert.setHeaderText("Failed to load model");
-            alert.setContentText(e.getMessage());
+            alert.setContentText("Error: " + e.getClass().getSimpleName() + "\n" +
+                    "Message: " + (e.getMessage() != null ? e.getMessage() : "Unknown error") + "\n\n" +
+                    "Please make sure the selected file is a valid model file.");
             alert.showAndWait();
         }
     }
